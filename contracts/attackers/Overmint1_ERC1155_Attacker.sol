@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "../Overmint1-ERC1155.sol";
 
 contract Overmint1_ERC1155_Attacker is IERC1155Receiver {
-// contract Overmint1_ERC1155_Attacker {
     uint256 public constant tokenId = 0;
 
     Overmint1_ERC1155 public immutable target;
