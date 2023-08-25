@@ -132,11 +132,7 @@ contract GovernanceAttacker {
 
         uint nonce = 1;
         address[] memory preCalcedVotersA = getPreCalculatedAddresses(type(AttackerVoter).creationCode, 0, 5);
-        bytes memory viceroyCreationCodeA = abi.encodePacked(
-            type(AttackerViceroy).creationCode,
-            abi.encode(governance, proposal, preCalcedVotersA)
-        );
-        address preCalcedViceroyA = getCreate2Address(viceroyCreationCodeA, nonce);
+        address preCalcedViceroyA = getViceroyAddress(governance, proposal, preCalcedVotersA);
 
         // elect viceroy
         governance.appointViceroy(preCalcedViceroyA, nonce);
@@ -154,6 +150,19 @@ contract GovernanceAttacker {
         }
         (uint votes, ) = governance.proposals(proposalId);
         assert(votes == preCalcedVotersA.length);
+    }
+
+    function getViceroyAddress(
+        Governance governance,
+        bytes memory proposal,
+        address[] memory voters
+    ) public view returns (address) {
+        uint nonce = 1;
+        bytes memory viceroyCreationCode = abi.encodePacked(
+            type(AttackerViceroy).creationCode,
+            abi.encode(governance, proposal, voters)
+        );
+        return getCreate2Address(viceroyCreationCode, nonce);
     }
 
     function deployVoters(uint num) public {
