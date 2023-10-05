@@ -207,14 +207,14 @@ contract GovernanceAttacker {
         return addresses;
     }
 
-    function getCreate2Address(bytes memory bytecode, uint _salt) internal view returns (address) {
+    function getCreate2Address(bytes memory contractCreationCode, uint _salt) internal view returns (address) {
         // get a hash concatenating args passed to encodePacked
         bytes32 hash = keccak256(
             abi.encodePacked(
                 bytes1(0xff), // 0
                 address(this), // address of factory contract
                 _salt, // salt
-                keccak256(bytecode) // bytecode of contract to be deployed
+                keccak256(contractCreationCode) // contract creation bytecode of contract to be deployed
             )
         );
 

